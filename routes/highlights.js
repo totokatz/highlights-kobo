@@ -3,7 +3,7 @@ const highlightRouter = require("express").Router();
 const Highlight = require("../moduls/highlight.js");
 
 highlightRouter.get("/", async (_req, res) => {
-  const highlights = await Highlight.find({}).limit(100);
+  const highlights = await Highlight.find({});
   res.json(highlights);
 });
 
@@ -40,35 +40,23 @@ highlightRouter.post("/", async (req, res) => {
         .json({ error: "Formato inválido: se esperaba { documents: [...] }" });
     }
 
-    const results = [];
-
-    for (const doc of data.documents) {
-      // upsert documento (si no existe lo crea)
-      const update = {
-        $setOnInsert: {
-          file: doc.file,
-          title: doc.title,
-          number_of_pages: doc.number_of_pages,
+    const bulkOps = data.documents.map((doc) => ({
+      updateOne: {
+        filter: { file: doc.file, title: doc.title },
+        update: {
+          $set: {
+            file: doc.file,
+            title: doc.title,
+            number_of_pages: doc.number_of_pages,
+          },
+          $addToSet: { entries: { $each: doc.entries || [] } },
         },
-      };
+        upsert: true,
+      },
+    }));
 
-      // para cada entry, usás $addToSet
-      if (doc.entries && doc.entries.length > 0) {
-        for (const entry of doc.entries) {
-          const updated = await Highlight.updateOne(
-            { file: doc.file, title: doc.title }, // criterio de documento
-            {
-              ...update,
-              $addToSet: { entries: entry }, // agrega solo si no existe ese objeto exacto
-            },
-            { upsert: true }
-          );
-          results.push(updated);
-        }
-      }
-    }
-
-    return res.status(201).json(results);
+    const result = await Highlight.bulkWrite(bulkOps);
+    return res.status(201).json(result);
   } catch (error) {
     console.error("Error al guardar:", error);
     return res.status(500).json({

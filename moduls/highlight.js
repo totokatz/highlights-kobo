@@ -22,6 +22,8 @@ const DocumentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+DocumentSchema.index({ file: 1, title: 1 }, { unique: true });
+
 DocumentSchema.set("toJSON", {
   transform: (_doc, ret) => {
     ret.id = ret._id.toString();
