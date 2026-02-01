@@ -7,20 +7,32 @@ const highlightRouter = require("./routes/highlights.js");
 
 const cors = require("cors");
 
+const path = require("path");
+
 const url = process.env.MONGODB_URI;
+
+if (!url) {
+  console.error("MONGODB_URI is not defined in environment variables");
+}
 
 console.log("connecting to", url);
 
-mongoose
-  .connect(url)
-  .then((result) => {
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  try {
+    await mongoose.connect(url);
     console.log("connected to MongoDB");
-  })
-  .catch((error) => {
-    console.log("error connecting to MongoDB:", error.message);
-  });
+  } catch (error) {
+    console.error("error connecting to MongoDB:", error.message);
+  }
+};
 
-app.use(express.static("dist"));
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
+app.use(express.static(path.join(__dirname, "dist")));
 app.use(
   express.json({
     limit: "200mb",
@@ -32,7 +44,15 @@ app.use(express.urlencoded({ extended: true, limit: "200mb" }));
 app.use(cors());
 app.use("/api/highlights", highlightRouter);
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
