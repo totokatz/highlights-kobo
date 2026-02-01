@@ -1,0 +1,542 @@
+:root {
+  --bg: #f7f7fb;
+  --card-bg: #fff;
+  --text: #222;
+  --muted: #666;
+  --border: #e8e8ef;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  --radius: 14px;
+  --accent: #6c63ff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+    Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.results {
+  max-width: 900px;
+  margin: 32px auto;
+  padding: 0 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.card__book {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.card__dot {
+  opacity: 0.7;
+}
+
+.card__page {
+  font-variant-numeric: tabular-nums;
+}
+
+.card__text {
+  margin: 8px 0 6px;
+  line-height: 1.6;
+  font-size: 1.06rem;
+}
+
+.card__footer {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.search {
+  max-width: 600px;
+  margin: 24px auto 8px; /* centrado */
+  padding: 0 16px;
+}
+
+.search__box {
+  position: relative;
+}
+
+.search__input {
+  width: 100%;
+  padding: 12px 44px; /* deja espacio para icono y clear */
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search__input::placeholder {
+  color: var(--muted);
+}
+
+.search__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+}
+
+.search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  opacity: 0.65;
+  pointer-events: none;
+  fill: currentColor;
+  color: var(--muted);
+}
+
+.search__clear {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0px 0px;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.search__clear:hover {
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.bookbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 16px;
+  background: var(--bg);
+}
+
+.bookbar__info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.bookbar__count {
+  font-size: 0.9rem;
+}
+
+/* Botón minimal */
+.btn {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  padding: 8px 12px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.btn:hover {
+  filter: brightness(0.98);
+}
+
+/* Efecto para resaltar el highlight al que se hace scroll */
+@keyframes pulseCard {
+  0% {
+    box-shadow: 0 0 0 0 rgba(108, 99, 255, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(108, 99, 255, 0);
+  }
+}
+.card--pulse {
+  animation: pulseCard 0.8s ease-out 1;
+  border-color: var(--accent);
+  scroll-margin-top: 72px; /* por si tenés header sticky */
+}
+
+/* Footer con botón */
+.card__footer--actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.content {
+  min-width: 0;
+}
+
+/* Sidebar */
+.sidebar {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  max-height: calc(200vh - 50px);
+  overflow: auto;
+}
+
+.sidebar__header {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar__item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar__item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.sidebar__item.is-active {
+  border-color: var(--accent);
+  background: rgba(108, 99, 255, 0.08);
+}
+
+.sidebar__itemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__count {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* Responsive: sidebar arriba en mobile */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* ---- Ajustes de sidebar a la izquierda con gutter ---- */
+:root {
+  --sidebar-w: 340px; /* ancho del sidebar */
+  --gutter-l: clamp(16px, 4vw, 40px); /* espacio izquierdo (no pegado) */
+}
+
+.layout.layout--left {
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  max-width: none; /* puede ocupar todo el ancho */
+  margin: 24px 0; /* sin centrado total */
+  padding-left: var(--gutter-l); /* <<< margen izquierdo agradable */
+  padding-right: clamp(12px, 3vw, 28px);
+  gap: 16px;
+}
+
+/* Sidebar sticky con borde redondeado normal (ya no “cortado”) */
+.layout.layout--left .sidebar {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius); /* vuelve el radio normal */
+  box-shadow: var(--shadow);
+  padding: 14px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+/* Responsive: una sola columna y vuelve padding estándar */
+@media (max-width: 900px) {
+  .layout.layout--left {
+    grid-template-columns: 1fr;
+    margin: 16px 0;
+    padding-left: 16px; /* gutter móvil */
+    padding-right: 16px;
+  }
+  .layout.layout--left .sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* =========================
+   Importar (arriba-izquierda, NO sticky/fixed)
+   ========================= */
+
+/* Selecciona SOLO el form que contiene el input de archivos "highlights" */
+form:has(> label > input[type="file"][name="highlights"]) {
+  position: static; /* scrollea con la página */
+  top: auto;
+  left: auto;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  /* arriba a la izquierda con un gutter agradable */
+  margin: 12px clamp(16px, 3vw, 28px);
+  margin-right: auto; /* se queda a la izquierda */
+  padding: 8px 10px;
+
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Label como botón (abre el selector) */
+form:has(> label > input[type="file"][name="highlights"]) > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 0;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+/* Ocultar visualmente el input file (accesible vía label) */
+form:has(> label > input[type="file"][name="highlights"])
+  > label
+  > input[type="file"][name="highlights"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Botón "Subir" primario */
+form:has(> label > input[type="file"][name="highlights"])
+  > button[type="submit"] {
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+form:has(> label > input[type="file"][name="highlights"])
+  > button[type="submit"]:hover {
+  filter: brightness(0.96);
+}
+form:has(> label > input[type="file"][name="highlights"])
+  > button[type="submit"]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* =========================
+   Combobox (select multiple)
+   ========================= */
+
+.combobox {
+  width: 100%;
+  max-width: 260px; /* ajustá si lo querés más ancho */
+  min-height: 160px; /* aprox 5–6 filas visibles */
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font: inherit;
+  line-height: 1.35;
+  padding: 6px; /* “acolchado” interno */
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s;
+  cursor: default;
+}
+
+.combobox:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+}
+
+/* Opciones */
+.combobox option {
+  padding: 8px 10px;
+  border-radius: 8px; /* algunos UAs lo respetan */
+  margin: 2px 0; /* idem */
+}
+
+/* Hover visual (cuando el UA lo permite) */
+.combobox option:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Selección (checked) con tu acento */
+.combobox option:checked {
+  color: #fff;
+  background: var(--accent) !important;
+  /* Safari/Chrome requieren el gradient para sobreescribir */
+  background-image: linear-gradient(var(--accent), var(--accent)) !important;
+}
+
+/* Scrollbar sutil */
+.combobox::-webkit-scrollbar {
+  width: 10px;
+}
+.combobox::-webkit-scrollbar-track {
+  background: transparent;
+}
+.combobox::-webkit-scrollbar-thumb {
+  background: #d9d9e6;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Ubicación recomendada dentro del sidebar: ocupar ancho completo */
+.sidebar .combobox {
+  max-width: none;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Si lo querés arriba del contenido (fuera del sidebar) */
+.content .combobox {
+  margin: 12px 16px;
+}
+
+/* =========================
+   Minibar de búsqueda (en .bookbar)
+   ========================= */
+
+.bookbar {
+  /* ya existe en tu CSS; por si acaso permitimos envolver en mobile */
+  flex-wrap: wrap;
+}
+
+/* Contenedor de la minibarra: ocupa el espacio central y centra el input */
+.bookbar__search {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 240px;
+}
+
+/* Input compacto con el mismo look & feel del proyecto */
+.bookbar .search-input {
+  width: min(560px, 100%);
+  padding: 10px 12px 10px 40px; /* espacio para el icono */
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg) no-repeat 12px 50%;
+  /* Icono de lupa inline (SVG) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-size: 18px 18px;
+
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 0.98rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.bookbar .search-input::placeholder {
+  color: var(--muted);
+}
+
+.bookbar .search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+}
+
+/* Ajustes responsivos: que la barra baje a una fila aparte si no entra */
+@media (max-width: 900px) {
+  .bookbar__search {
+    order: 3; /* que quede debajo si hay poco espacio */
+    flex-basis: 100%;
+    justify-content: stretch;
+    margin-top: 6px;
+  }
+  .bookbar .search-input {
+    width: 100%;
+  }
+}
