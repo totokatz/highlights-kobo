@@ -6,19 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React</title>
     <script>
-      if (typeof global === 'undefined') {
-        var global = window;
-      }
-      if (typeof exports === 'undefined') {
-        var exports = {};
-      }
-      if (typeof module === 'undefined') {
-        var module = {};
-      }
+      window.global = window;
+      window.process = { env: {} };
+      window.exports = {};
     </script>
-    <script type="module" crossorigin src="/assets/index-DVH8svrv.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/vendor-ZJqYa6aP.js">
-    <link rel="modulepreload" crossorigin href="/assets/utils-DVO4MvAi.js">
+    <script type="module" crossorigin src="/assets/index-tPEerigZ.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BEMoT4q0.css">
   </head>
   <body>
