@@ -5,20 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              accent: '#6c63ff',
-            }
-          }
-        }
+      if (typeof global === 'undefined') {
+        var global = window;
+      }
+      if (typeof exports === 'undefined') {
+        var exports = {};
+      }
+      if (typeof module === 'undefined') {
+        var module = {};
       }
     </script>
-    <script type="module" crossorigin src="/assets/index-B9N0Bv5L.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-YtrvoAu0.css">
+    <script type="module" crossorigin src="/assets/index-DVH8svrv.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-ZJqYa6aP.js">
+    <link rel="modulepreload" crossorigin href="/assets/utils-DVO4MvAi.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BEMoT4q0.css">
   </head>
   <body>
     <div id="root"></div>
