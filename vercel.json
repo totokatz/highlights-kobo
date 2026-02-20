@@ -1,18 +1,14 @@
 {
   "version": 2,
   "functions": {
-    "server/index.cjs": {
+    "api/index.cjs": {
       "includeFiles": "server/dist/**"
     }
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/server/index.cjs"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/server/index.cjs"
+      "destination": "/api/index"
     }
   ]
 }
