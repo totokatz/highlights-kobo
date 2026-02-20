@@ -307,7 +307,6 @@ const HighlightCard = React.memo(
     onOpenInBook,
     onToggleStar,
     showBookContext = true,
-    query,
     highlightRegex,
     onChapterClick,
     isTarget,
@@ -402,7 +401,6 @@ const HighlightCard = React.memo(
       prevProps.highlight.id === nextProps.highlight.id &&
       prevProps.highlight.starred === nextProps.highlight.starred &&
       prevProps.showBookContext === nextProps.showBookContext &&
-      prevProps.query === nextProps.query && // Keep query check for safety/consistency
       prevProps.highlightRegex === nextProps.highlightRegex && // Check regex ref equality
       prevProps.isTarget === nextProps.isTarget
     );
@@ -592,7 +590,7 @@ export default function Highlights() {
   const workerRef = useRef(null);
   const lastProcessedRef = useRef(null);
 
-  // Inicializar Worker + precargar si ya hay datos en Redux (del cache)
+  // Inicializar Worker
   useEffect(() => {
     workerRef.current = new SearchWorker();
 
@@ -626,17 +624,6 @@ export default function Highlights() {
           break;
       }
     };
-
-    // Precargar datos si ya están en Redux (vienen del cache IndexedDB)
-    if (highlights && highlights.length > 0) {
-      setIsProcessing(true);
-      workerRef.current.postMessage({
-        type: "PROCESS_DATA",
-        payload: highlights,
-        id: "process",
-      });
-      lastProcessedRef.current = highlights;
-    }
 
     return () => {
       workerRef.current?.terminate();
@@ -832,7 +819,6 @@ export default function Highlights() {
           onOpenInBook={openInBook}
           onToggleStar={handleToggleStar}
           showBookContext={!selectedBook}
-          query={activeQuery}
           highlightRegex={highlightRegex}
           onChapterClick={handleChapterClick}
           isTarget={item.id === scrollId || item.originalId === scrollId}
@@ -843,7 +829,6 @@ export default function Highlights() {
       openInBook,
       handleToggleStar,
       selectedBook,
-      activeQuery,
       highlightRegex,
       handleChapterClick,
       scrollId,

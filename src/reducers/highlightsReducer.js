@@ -1,4 +1,4 @@
-import { createSlice, current } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 //import initialState from "../../all.json" assert { type: "json" };
 
 //console.log("Initial state", initialState);

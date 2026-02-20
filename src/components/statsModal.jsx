@@ -1,8 +1,6 @@
 import React, { useMemo } from "react";
 
 const StatsModal = ({ isOpen, onClose, highlights, books }) => {
-  if (!isOpen) return null;
-
   const stats = useMemo(() => {
     if (!highlights || highlights.length === 0) return null;
 
@@ -47,6 +45,8 @@ const StatsModal = ({ isOpen, onClose, highlights, books }) => {
       avgLength,
     };
   }, [highlights, books]);
+
+  if (!isOpen) return null;
 
   const renderContent = () => {
     if (!stats) {

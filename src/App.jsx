@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import Filter from "./components/filter.jsx";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import Highlights from "./components/highlights.jsx";
 import { setHighlights } from "./reducers/highlightsReducer.js";
-import Importar from "./components/importarButton.jsx";
 import highlightService from "./services/highlightService.js";
 import { getData, saveData } from "./services/dbService.js";
 
