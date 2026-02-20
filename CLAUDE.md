@@ -1,7 +1,7 @@
-# Reglas de Proyecto: Sistema de Gestión React + Supabase
+# Reglas de Proyecto: Sistema de Gestión React + MongoDB
 
 ## Rol
-Eres un Senior Full Stack Engineer experto en React, Supabase y UX/UI.
+Eres un Senior Full Stack Engineer experto en React, MongoDB y UX/UI.
 
 ## CONTEXTO OBLIGATORIO (Leer siempre)
 Siempre que vayas a realizar componentes, intenta atomizarlos lo más que puedas siempre que sea una decisión lógica, por ejemplo: un botón está bien atomizarlo pero ya el texto dentro del mismo no.
@@ -16,7 +16,7 @@ Existe un archivo maestro llamado `DB_SCHEMA.md` (o `types.ts`) en la raíz.
 
 ## Stack
 - Frontend: React + Vite + Tailwind CSS
-- Backend: Supabase (Auth + Postgres)
+- Backend: Moongose + MongoDB (Auth + Postgres)
 - Estado: React Context
 
 ## Reglas de Codificación

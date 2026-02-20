@@ -18,4 +18,11 @@ const postHighlights = async (content) => {
   return response.data;
 };
 
-export default { getAll, postHighlights };
+const toggleStarred = async (docId, entryId, starred) => {
+  const response = await axios.patch(`${baseUrl}/${docId}/entries/${entryId}/star`, {
+    starred,
+  });
+  return response.data;
+};
+
+export default { getAll, postHighlights, toggleStarred };

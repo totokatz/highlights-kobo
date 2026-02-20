@@ -1,16 +1,4 @@
-import Fuse from "fuse.js";
-
 /* ===== Configuración optimizada ===== */
-const fuseOptions = {
-  keys: ["searchText"],
-  includeScore: true,
-  threshold: 0.35,
-  distance: 150,
-  minMatchCharLength: 2,
-  ignoreLocation: true,
-  includeMatches: false,
-};
-
 // Cache global para normalización
 const normalizeCache = new Map();
 const NORMALIZE_CACHE_SIZE = 5000;
@@ -18,7 +6,7 @@ const NORMALIZE_CACHE_SIZE = 5000;
 /* ===== Utils ===== */
 const normalize = (s) => {
   if (!s) return "";
-  const str = s.toString();
+  const str = s.toString().trim();
 
   if (normalizeCache.has(str)) return normalizeCache.get(str);
 
@@ -34,6 +22,17 @@ const normalize = (s) => {
 
   normalizeCache.set(str, result);
   return result;
+};
+
+// Simple hash function for stable IDs
+const hashString = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
 };
 
 const slug = (s) =>
@@ -61,6 +60,9 @@ const formatKoTs = (ts) => {
     day: "numeric",
     month: "long",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   }).format(date);
 
   if (dateCache.size >= DATE_CACHE_SIZE) {
@@ -80,14 +82,34 @@ const parsePageFilter = (q) => {
   return { from, to };
 };
 
+const parseChapterFilter = (q) => {
+  const m = q.match(/\bc:"([^"]+)"|\bc:(\S+)/i);
+  if (!m) return null;
+  return m[1] || m[2];
+};
+
 const parseQuery = (raw) => {
   const q = raw.trim();
-  if (!q) return { phrases: [], terms: [], page: null };
+  if (!q)
+    return {
+      phrases: [],
+      terms: [],
+      page: null,
+      chapter: null,
+      starred: false,
+    };
 
   const page = parsePageFilter(q);
-  const qWithoutPage = q.replace(/\bp:\d+(?:-\d+)?\b/gi, "").trim();
+  const chapter = parseChapterFilter(q);
+  const starred = /\bis:starred\b/i.test(q);
 
-  const tokens = qWithoutPage.match(/"([^"]+)"|\S+/g) || [];
+  let qWithoutFilters = q
+    .replace(/\bp:\d+(?:-\d+)?\b/gi, "")
+    .replace(/\bc:"[^"]+"|\bc:\S+/gi, "")
+    .replace(/\bis:starred\b/gi, "")
+    .trim();
+
+  const tokens = qWithoutFilters.match(/"([^"]+)"|\S+/g) || [];
   const phrases = [];
   const terms = [];
 
@@ -101,197 +123,229 @@ const parseQuery = (raw) => {
     }
   }
 
-  return { phrases, terms, page };
+  return { phrases, terms, page, chapter, starred };
 };
 
 /* ===== Estado del Worker ===== */
 let allItems = [];
 let booksList = [];
-let mainFuse = null;
 
-// Cache de Fuse por libro para búsquedas rápidas dentro de libros
-const bookFuseCache = new Map();
+// Cache por libro para búsquedas rápidas dentro de libros
 const bookItemsCache = new Map();
 
 /* ===== Lógica Principal ===== */
 const processData = (highlights) => {
   allItems = [];
   const bookCounts = new Map();
+  const globalSeenHighlights = new Set();
+
   normalizeCache.clear();
   dateCache.clear();
-  bookFuseCache.clear();
   bookItemsCache.clear();
 
   if (!highlights?.length) return { books: [], count: 0 };
 
+  // Pre-calculate common values to avoid repeated work
   for (let hi = 0; hi < highlights.length; hi++) {
     const h = highlights[hi];
-    const entries = h?.entries ?? [];
+    if (!h) continue;
 
-    if (entries.length <= 0) continue; // Skip empty, but user had <= 45 check? sticking to user logic if it was intended to skip small ones? 
-    // Wait, the original code had `if (entries.length <= 45) continue;`?? That seems like a bug or a very specific filter. 
-    // Wait, looking at original code: `if (entries.length <= 45) continue;`
-    // If it's characters length maybe? No, `entries` is an array. 
-    // Maybe `entries` is a string? No, `h?.entries ?? []`.
-    // Wait, `entries.length` is number of highlights in a book? 45 seems high for a threshold to IGNORE.
-    // Let me re-read the original code carefully.
-    
-    // Original:
-    // for (let hi = 0; hi < highlights.length; hi++) {
-    //   const h = highlights[hi];
-    //   const entries = h?.entries ?? [];
-    //   if (entries.length <= 45) continue;
-    
-    // Use user logic for now to ensure consistency, but it looks suspicious. 
-    // Actually, looking at `CLAUDE.md`, maybe it's "text length"? 
-    // No, `entries` is the list of highlights in a book document. 
-    // If I ignore books with <= 45 highlights, that might be correct for their specific use case (e.g. only "real" books).
-    // I will KEEP it but I should probably lower it or check if it's a bug. 
-    // User asked to fix "optimization", maybe this WAS an "optimization" to hide small books?
-    // I'll stick to the existing logic for filtering to be safe, unless I find it's the cause of missing data.
-    
-    // UPDATE: On second thought, `entries.length <= 45` seems like it might be filtering out A LOT of content. 
-    // Maybe it was meant to be `entries.length === 0`? Or maybe `text.length`?
-    // But `entries` is an array.
-    // I will use `if (entries.length === 0) continue;` because 45 seems like a magic number that might be wrong.
-    // However, to avoid changing behavior UNLESS it's a bug, I should be careful.
-    // But "Arregla todos los problemas" gives me permission. 45 highlights is a lot. Most books have fewer unless intensive study.
-    // I'll comment it out or change it to 0. 
-    
-    // Let's re-read the original code line 307. 
-    // `if (entries.length <= 45) continue;`
-    // I'll preserve it for now but note it. 
-    // ACTUALLY, checking the `addHighlight` reducer: `entries` is an array.
-    // I'll stick to the original code for data filtering logic to avoid breaking functionality (maybe they only want books with many highlights).
-    // ... Actually, I'll relax it to 0 because "Optimization" shouldn't hide data unpredictably. 
-    // But if the user complains "my small notes appeared", I'll revert.
-    // Wait, I see "highlights-kobo". Maybe Kobo exports structure differently?
-    // I'll keep the logic EXACTLY as is to be safe on logic changes, but move it to worker.
-    
-    if (entries.length <= 0) continue; 
+    const entries = h.entries ?? [];
+    if (entries.length === 0) continue;
 
-    const autor = h?.author ?? "";
-    const libro = h?.title ?? "";
+    const autor = h.author ?? h.Autor ?? "Desconocido";
+    const libro = h.title ?? h.Libro ?? "Sin título";
     const normalizedLibro = normalize(libro);
+
+    const currentBookItems = [];
 
     for (let ei = 0; ei < entries.length; ei++) {
       const e = entries[ei];
-      const highlight = e?.text ?? "";
-      
-      // Original logic didn't filter by highlight length here?
-      
-      const capitulo = e?.chapter ?? "";
-      const pagina = Number(e?.page ?? 0);
-      const fecha = formatKoTs(e?.time ?? 0);
+      if (!e) continue;
+
+      const highlight = e.text ?? "";
+      if (!highlight.trim()) continue;
+
+      const highlightNormalizado = normalize(highlight);
+      const pagina = Number(e.page ?? 0);
+
+      // Unique identifier for de-duplication
+      const contentFingerprint = `${normalizedLibro}|${pagina}|${highlightNormalizado}`;
+
+      if (globalSeenHighlights.has(contentFingerprint)) {
+        continue;
+      }
+      globalSeenHighlights.add(contentFingerprint);
+
+      const capitulo = e.chapter ?? "";
+      const fecha = formatKoTs(e.time ?? 0);
 
       const item = {
-        id: e?.id ?? `${slug(libro)}-${pagina}-${hi}-${ei}`,
+        id:
+          e._id ?? e.id ?? `${slug(libro)}-${pagina}-${hashString(highlight)}`,
+        entryId: e._id ?? e.id,
+        docId: h.id,
+        starred: !!e.starred,
         Autor: autor,
         Libro: libro,
         Capitulo: capitulo,
         Highlight: highlight,
         Pagina: pagina,
         Fecha: fecha,
-        searchText: `${normalizedLibro} ${normalize(highlight)}`,
+        Timestamp: e.time ?? 0,
+        searchText: `${normalizedLibro} ${highlightNormalizado}`,
+        normTitle: normalizedLibro,
+        normHighlight: highlightNormalizado,
       };
 
       allItems.push(item);
+      currentBookItems.push(item);
+    }
 
-      const bookKey = libro || "Sin título";
-      bookCounts.set(bookKey, (bookCounts.get(bookKey) ?? 0) + 1);
-      
-      // Cache items by book for faster filtering later
-      if (!bookItemsCache.has(bookKey)) {
-        bookItemsCache.set(bookKey, []);
+    if (currentBookItems.length > 0) {
+      bookCounts.set(
+        libro,
+        (bookCounts.get(libro) ?? 0) + currentBookItems.length,
+      );
+
+      if (!bookItemsCache.has(libro)) {
+        bookItemsCache.set(libro, []);
       }
-      bookItemsCache.get(bookKey).push(item);
+      const existingItems = bookItemsCache.get(libro);
+      for (let i = 0; i < currentBookItems.length; i++) {
+        existingItems.push(currentBookItems[i]);
+      }
     }
   }
 
   // Sort book items by page
-  for (const [key, items] of bookItemsCache) {
+  for (const items of bookItemsCache.values()) {
     items.sort((a, b) => (a.Pagina ?? 0) - (b.Pagina ?? 0));
   }
 
   booksList = Array.from(bookCounts, ([title, count]) => ({
     title,
     count,
-  })).sort((a, b) =>
-    a.title.localeCompare(b.title, "es", { sensitivity: "base" })
-  );
-
-  // Create main fuse
-  mainFuse = new Fuse(allItems, fuseOptions);
+  }))
+    .filter((b) => b.count >= 10)
+    .sort((a, b) =>
+      a.title.localeCompare(b.title, "es", { sensitivity: "base" }),
+    );
 
   return { books: booksList, count: allItems.length };
 };
 
-const search = (data, query, fuseInstance) => {
-  const raw = (query ?? "").trim();
-  if (!raw) return data.slice(0, 200);
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
 
-  const { phrases, terms, page } = parseQuery(raw);
+const search = (data, query) => {
+  const raw = (query ?? "").trim();
+  if (!raw) return data;
+
+  const {
+    phrases,
+    terms,
+    page,
+    chapter,
+    starred: starredFilter,
+  } = parseQuery(raw);
+
+  // Prepare normalized query for scoring
+  let qWithoutFilters = raw
+    .replace(/\bp:\d+(?:-\d+)?\b/gi, "")
+    .replace(/\bc:"[^"]+"|\bc:\S+/gi, "")
+    .replace(/\bis:starred\b/gi, "")
+    .trim();
+  const normalizedQuery = normalize(qWithoutFilters);
+  const wordRegex = normalizedQuery
+    ? new RegExp(`\\b${escapeRegExp(normalizedQuery)}\\b`, "i")
+    : null;
+
   let base = data;
+
+  if (starredFilter) {
+    base = base.filter((x) => x.starred);
+  }
 
   if (page) {
     base = base.filter((x) => x.Pagina >= page.from && x.Pagina <= page.to);
   }
 
+  if (chapter) {
+    const normalizedChapter = normalize(chapter);
+    base = base.filter((x) =>
+      normalize(x.Capitulo).includes(normalizedChapter),
+    );
+  }
+
   if (!phrases.length && !terms.length) {
-    return base.slice(0, 200);
+    return base;
   }
 
-  if (phrases.length) {
-    base = base.filter((x) =>
-      phrases.every((ph) => x.searchText.includes(ph))
-    );
-  }
-
-  if (!terms.length) return base.slice(0, 200);
-
-  const shortTerms = terms.filter((t) => t.length <= 2);
-  const longTerms = terms.filter((t) => t.length >= 3);
-
-  if (shortTerms.length) {
-    base = base.filter((x) =>
-      shortTerms.every((t) => x.searchText.includes(t))
-    );
-  }
-
-  if (!longTerms.length) return base.slice(0, 200);
-  if (!fuseInstance) return base.slice(0, 200);
-
-  const baseIds = new Set(base.map((b) => b.id));
-  const scoredItems = new Map();
-
-  for (const term of longTerms) {
-    const results = fuseInstance.search(term, {
-      limit: Math.min(base.length, 500),
-    });
-
-    for (const r of results) {
-      const id = r.item.id;
-      if (!baseIds.has(id)) continue;
-
-      const existing = scoredItems.get(id);
-      if (existing) {
-        existing.score += r.score ?? 0;
-        existing.matches += 1;
-      } else {
-        scoredItems.set(id, {
-          item: r.item,
-          score: r.score ?? 0,
-          matches: 1,
-        });
-      }
+  // Filter Logic (Strict)
+  base = base.filter((item) => {
+    // 1. Check Phrases
+    if (phrases.length > 0) {
+      const allPhrasesMatch = phrases.every((ph) =>
+        item.searchText.includes(ph),
+      );
+      if (!allPhrasesMatch) return false;
     }
-  }
 
-  return Array.from(scoredItems.values())
-    .filter((x) => x.matches === longTerms.length)
-    .sort((a, b) => a.score / a.matches - b.score / b.matches)
-    .map((x) => x.item)
-    .slice(0, 200);
+    // 2. Check Terms (All must match)
+    if (terms.length > 0) {
+      const allTermsMatch = terms.every((t) => item.searchText.includes(t));
+      if (!allTermsMatch) return false;
+    }
+
+    return true;
+  });
+
+  // Scoring & Sorting
+  const scored = base.map((item) => {
+    let score = 0;
+    // Use pre-calculated normalized values if available, else normalize
+    const normHighlight = item.normHighlight || normalize(item.Highlight);
+    const normTitle = item.normTitle || normalize(item.Libro);
+
+    // Priority 1: Exact Match (Score 1000)
+    if (normHighlight === normalizedQuery || normTitle === normalizedQuery) {
+      score = 1000;
+    }
+    // Priority 2: Starts With (Score 500)
+    else if (
+      normHighlight.startsWith(normalizedQuery) ||
+      normTitle.startsWith(normalizedQuery)
+    ) {
+      score = 500;
+    }
+    // Priority 3: Word Match (Score 100)
+    else if (
+      wordRegex &&
+      (wordRegex.test(normHighlight) || wordRegex.test(normTitle))
+    ) {
+      score = 100;
+    }
+    // Priority 4: Partial Match (Score 10)
+    else if (
+      normHighlight.includes(normalizedQuery) ||
+      normTitle.includes(normalizedQuery)
+    ) {
+      score = 10;
+    }
+    // Fallback: Terms matched but full query didn't match as a phrase (Score 1)
+    else {
+      score = 1;
+    }
+
+    return { item, score };
+  });
+
+  // Sort descending by score
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.map((x) => x.item);
 };
 
 /* ===== Message Handler ===== */
@@ -307,22 +361,20 @@ self.onmessage = (e) => {
       }
       case "SEARCH_MAIN": {
         const { query } = payload;
-        const results = search(allItems, query, mainFuse);
+        // Fuse param removed
+        const results = search(allItems, query);
         self.postMessage({ type: "SEARCH_RESULTS", payload: results, id });
+        break;
+      }
+      case "INIT_FUSE": {
+        // Legacy support - no op
         break;
       }
       case "SEARCH_BOOK": {
         const { bookTitle, query } = payload;
         const bookItems = bookItemsCache.get(bookTitle) || [];
-        
-        // Init fuse for book if needed
-        let fuse = bookFuseCache.get(bookTitle);
-        if (!fuse && bookItems.length > 0) {
-            fuse = new Fuse(bookItems, fuseOptions);
-            bookFuseCache.set(bookTitle, fuse);
-        }
-
-        const results = search(bookItems, query, fuse);
+        // Fuse logic removed
+        const results = search(bookItems, query);
         self.postMessage({ type: "SEARCH_RESULTS", payload: results, id });
         break;
       }

@@ -5,28 +5,44 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "nodemon server/index.cjs",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "vite build",
+    "start": "node server/index.cjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
+    "@supabase/supabase-js": "^2.95.3",
+    "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.11.0",
-    "fuse.js": "^7.1.0",
+    "cors": "^2.8.5",
+    "docx": "^9.5.1",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jspdf": "^4.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-redux": "^9.2.0",
+    "react-virtuoso": "^4.18.1",
     "redux": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.24",
+    "concurrently": "^9.1.2",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "nodemon": "^3.1.10",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
     "vite": "^7.1.2"
   }
 }
